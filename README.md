@@ -1,4 +1,4 @@
-Python Learning Lab
+#Python Learning Lab
 
 A collection of small projects and experiments I built while learning Python, NumPy, data analysis, algorithms, and machine learning.
 

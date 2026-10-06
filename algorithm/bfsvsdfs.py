@@ -80,6 +80,61 @@ def dfs(graph, a):
     return result
 
 
+def shortest_path(graph, start, end):
+
+    visited = [False] * len(graph)
+    queue = dq()
+    queue.append((start, [start]))
+
+    while queue:
+
+        node, path = queue.popleft()
+
+        if node == end:
+            return path, len(path) - 1
+            
+            
+        for neighbor in find_neighbors(graph, node):
+            if not visited[neighbor]:
+                visited[neighbor] = True
+                queue.append((neighbor, path + [neighbor]))
+
+
+    return "Path not found", -1
+
+def dfs_cycle(graph, node, visited, parent):
+
+    visited[node] = True
+
+    for neighbor in find_neighbors(graph, node):
+
+        if not visited[neighbor]:
+            parent[neighbor] = node
+
+            cycle = dfs_cycle(graph, neighbor, visited, parent)
+
+            if cycle:
+                return cycle
+
+        elif parent[node] != neighbor:
+
+            cycle = [neighbor]
+            current = node
+
+            while current != neighbor:
+                cycle.append(current)
+                current = parent[current]
+
+          
+            cycle.append(neighbor)
+    
+            cycle.reverse()
+            return cycle
+
+    return "No cycle found"
+
+
+
 
 
 
@@ -111,7 +166,21 @@ if __name__ == "__main__":
     print("Node 7: ", find_neighbors(mat, 7))
     print("Node 8: ", find_neighbors(mat, 8))
 
-    print(bfs(mat, 0))
-    print(dfs(mat, 0))
+    print("BFS from 0:", bfs(mat, 0))
+    print("DFS from 0:", dfs(mat, 0))
+
+    path, length = shortest_path(mat, 0, 8)
+    print("Shortest path from 0 to 8:", path)
+    print("Length of shortest path:", length, "edges")
+
+
+    visited = [False] * len(mat)
+    parent = [-1] * len(mat)
+
+    cycle = dfs_cycle(mat, 0, visited, parent)
+    print("Cycle detected:", cycle)
+    
+
+
 
     
