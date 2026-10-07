@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from heapq import heappop, heappush
 
 INF = float('inf')
 
@@ -12,60 +13,58 @@ def display_graph(graph):
     for row in graph:
         print(" ".join(map(str, row)))  
 
+
+
 def dijkstra(graph, start, end):
 
     n = len(graph)
-    visited = [False] * n
+
     distance = [INF] * n
+
     distance[start] = 0
     previous = [None] * n
 
+
+    heap = [(0, start)]  # (distance, vertex)
+
+
+    while heap:
+
+        current_distance, current_vertex = heappop(heap)
+
+        if current_distance > distance[current_vertex]:
+            continue
+
+        if current_vertex == end:
+            break
+
+        for neighbor in range(n):
+
+            if graph[current_vertex][neighbor] == INF:
+                continue
+
+            new_distance = (
+                current_distance + 
+                graph[current_vertex][neighbor]
+            )
+
+            if new_distance < distance[neighbor]:
+                distance[neighbor] = new_distance
+                previous[neighbor] = current_vertex
+                heappush(heap, (new_distance, neighbor))
+
     path = []
     current = end
-        
 
-    for _ in range(n):
-        
-        min_distance = INF
-        min_index = -1
-
-        for v in range(n):
-            if not visited[v] and distance[v] < min_distance:
-                min_distance = distance[v]
-                min_index = v
-
-
-        if min_index == -1:
-            break
-
-        visited[min_index] = True
-        
-        if min_index == end:
-            break
-
-
-        for v in range(n):
-
-            if graph[min_index][v] != INF and not visited[v]:
-
-                new_distance = (
-                    distance[min_index] + 
-                    graph[min_index][v]
-                )
-
-                if new_distance < distance[v]:
-                    distance[v] = new_distance
-                    previous[v] = min_index
-
-           
     while current is not None:
         path.append(current)
         current = previous[current]
+
     path.reverse()
 
     return distance, path
 
-
+   
 
 if __name__ == "__main__":
 
