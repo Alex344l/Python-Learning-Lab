@@ -70,7 +70,7 @@ if __name__ == "__main__":
 
 
    
-    v = 6
+    v = 10
     graph = [[INF] * v for _ in range(v)] 
 
     add_edge(graph, 0, 1, 2)
@@ -84,14 +84,30 @@ if __name__ == "__main__":
     add_edge(graph, 1, 5, 7)
     add_edge(graph, 0, 5, 10)
     add_edge(graph, 5, 0, 10)
+    add_edge(graph, 5, 6, 1)
+    add_edge(graph, 6, 7, 2)
+    add_edge(graph, 7, 8, 3)
+    add_edge(graph, 8, 9, 4)        
+    add_edge(graph, 9, 0, 5)  # Adding a cycle for testing
+    add_edge(graph, 6, 8, 1) 
 
     print("Weighted Graph:")
     print(np.array(graph))
 
     print("\nShortest distances from node 0 to node 4:")
-    distances, path = dijkstra(graph, 0, 4)
+    distances, path = dijkstra(graph, 0, 8)
 
-    print("Cost:", distances[4])
+    print("Cost:", distances[8])
     print("Path:", " -> ".join(map(str, path)))
+
+    plt.plot(path, marker='o')
+    plt.xlabel('Nodes in Path')
+    plt.ylabel('Shortest Distance')
+    plt.title('Dijkstra\'s Algorithm')
+
+    plt.grid(True, which='both', linestyle='--', linewidth=0.5, color="#36a4ee")
+
+
+    plt.show()      
 
 
