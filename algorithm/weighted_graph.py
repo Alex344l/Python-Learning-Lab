@@ -94,10 +94,10 @@ if __name__ == "__main__":
     print("Weighted Graph:")
     print(np.array(graph))
 
-    print("\nShortest distances from node 0 to node 4:")
-    distances, path = dijkstra(graph, 0, 8)
+    print("\nShortest distances from node 0 to node 9:")
+    distances, path = dijkstra(graph, 0, 9)
 
-    print("Cost:", distances[8])
+    print("Cost:", distances[9])
     print("Path:", " -> ".join(map(str, path)))
 
     plt.plot(path, marker='o')
