@@ -1,6 +1,7 @@
 import math
 from heapq import heappush, heappop
 from collections import deque as dq
+import matplotlib.pyplot as plt
 
 # Define the Cell class
 class Cell:
@@ -28,13 +29,15 @@ def is_unblocked(grid, row, col):
 def is_destination(row, col, dest):
     return row == dest[0] and col == dest[1]
 
+def is_diag(dir):
+    return dir[0] != 0 and dir[1] != 0
+
 # Calculate the heuristic value of a cell (Euclidean distance to destination)
 def calculate_h_value(row, col, dest):
     return ((row - dest[0]) ** 2 + (col - dest[1]) ** 2) ** 0.5
 
 # Trace the path from source to destination
 def trace_path(cell_details, dest):
-    print("The Path is ")
     path = []
     row = dest[0]
     col = dest[1]
@@ -53,33 +56,28 @@ def trace_path(cell_details, dest):
     path.reverse()
 
     # Print the path
-    for i in path:
-        print("->", i, end=" ")
-    print()
+    return path
+
 
 # Implement the A* search algorithm
 def a_star_search(grid, src, dest):
-    # Check if the source and destination are valid
+    # Checks before searching
     if not is_valid(src[0], src[1]) or not is_valid(dest[0], dest[1]):
         print("Source or destination is invalid")
-        return
+        return None
 
-    # Check if the source and destination are unblocked
     if not is_unblocked(grid, src[0], src[1]) or not is_unblocked(grid, dest[0], dest[1]):
         print("Source or the destination is blocked")
-        return
+        return None
 
-    # Check if we are already at the destination
     if is_destination(src[0], src[1], dest):
         print("We are already at the destination")
-        return
+        return [tuple(src)]
 
-    # Initialize the closed list (visited cells)
     closed_list = [[False for _ in range(COL)] for _ in range(ROW)]
-    # Initialize the details of each cell
     cell_details = [[Cell() for _ in range(COL)] for _ in range(ROW)]
 
-    # Initialize the start cell details
+    # Start cell
     i = src[0]
     j = src[1]
     cell_details[i][j].f = 0
@@ -88,62 +86,58 @@ def a_star_search(grid, src, dest):
     cell_details[i][j].parent_i = i
     cell_details[i][j].parent_j = j
 
-    # Initialize the open list (cells to be visited) with the start cell
     open_list = []
     heappush(open_list, (0.0, i, j))
 
-    # Initialize the flag for whether destination is found
-    found_dest = False
+    directions = [(0, 1), (0, -1), (1, 0), (-1, 0),
+                  (1, 1), (1, -1), (-1, 1), (-1, -1)]
 
-    # Main loop of A* search algorithm
     while len(open_list) > 0:
-        # Pop the cell with the smallest f value from the open list
         p = heappop(open_list)
-
-        # Mark the cell as visited
         i = p[1]
         j = p[2]
+
+        # CHANGED: skip old duplicate entries for a cell we already finished
+        if closed_list[i][j]:
+            continue
+
+        # CHANGED: stop when the destination is POPPED, not when it is first seen
+        if is_destination(i, j, dest):
+            return trace_path(cell_details, dest)
+
         closed_list[i][j] = True
 
-        # For each direction, check the successors
-        directions = [(0, 1), (0, -1), (1, 0), (-1, 0),
-                      (1, 1), (1, -1), (-1, 1), (-1, -1)]
         for dir in directions:
             new_i = i + dir[0]
             new_j = j + dir[1]
 
-            # If the successor is valid, unblocked, and not visited
-            if is_valid(new_i, new_j) and is_unblocked(grid, new_i, new_j) and not closed_list[new_i][new_j]:
-                # If the successor is the destination
-                if is_destination(new_i, new_j, dest):
-                    # Set the parent of the destination cell
-                    cell_details[new_i][new_j].parent_i = i
-                    cell_details[new_i][new_j].parent_j = j
-                    print("The destination cell is found")
-                    # Trace and print the path from source to destination
-                    trace_path(cell_details, dest)
-                    found_dest = True
-                    return
-                else:
-                    # Calculate the new f, g, and h values
-                    g_new = cell_details[i][j].g + 1.0
-                    h_new = calculate_h_value(new_i, new_j, dest)
-                    f_new = g_new + h_new
+            if not (is_valid(new_i, new_j) and is_unblocked(grid, new_i, new_j)
+                    and not closed_list[new_i][new_j]):
+                continue
 
-                    # If the cell is not in the open list or the new f value is smaller
-                    if cell_details[new_i][new_j].f == float('inf') or cell_details[new_i][new_j].f > f_new:
-                        # Add the cell to the open list
-                        heappush(open_list, (f_new, new_i, new_j))
-                        # Update the cell details
-                        cell_details[new_i][new_j].f = f_new
-                        cell_details[new_i][new_j].g = g_new
-                        cell_details[new_i][new_j].h = h_new
-                        cell_details[new_i][new_j].parent_i = i
-                        cell_details[new_i][new_j].parent_j = j
+            #is_diag = dir[0] != 0 and dir[1] != 0
 
-    # If the destination is not found after visiting all cells
-    if not found_dest:
-        print("Failed to find the destination cell")
+            # CHANGED: don't cut corners past a wall
+            if is_diag(dir) and (grid[i][new_j] == 0 or grid[new_i][j] == 0):
+                continue
+
+            # CHANGED: a diagonal step costs sqrt(2), not 1
+            step = math.sqrt(2) if is_diag else 1.0
+            g_new = cell_details[i][j].g + step
+            h_new = calculate_h_value(new_i, new_j, dest)
+            f_new = g_new + h_new
+
+            # CHANGED: update only if this is a cheaper way to reach the cell
+            if g_new < cell_details[new_i][new_j].g:
+                heappush(open_list, (f_new, new_i, new_j))
+                cell_details[new_i][new_j].f = f_new
+                cell_details[new_i][new_j].g = g_new
+                cell_details[new_i][new_j].h = h_new
+                cell_details[new_i][new_j].parent_i = i
+                cell_details[new_i][new_j].parent_j = j
+
+    print("Failed to find the destination cell")
+    return None
 
 
 #Experimenting with BFS and DFS
@@ -175,14 +169,22 @@ def shortest_path(grid, src, dest):
             return path
 
 
+
         for dr, dc in directions:
             nr, nc = r + dr, c + dc
-            if is_valid(nr, nc) and is_unblocked(grid, nr, nc):
-                visited.add((nr, nc))
-                queue.append(((nr, nc), path + [(nr, nc)]))
+
+
+            if not (is_valid(nr, nc) and is_unblocked(grid, nr, nc)) and (nr, nc) not in visited:
+                continue
+
+            if dr != 0 and dc != 0 and (grid[r][nc] == 0 or grid[nr][c] == 0):
+                continue
+
+            visited.add((nr, nc))
+            queue.append(((nr, nc), path + [(nr, nc)]))
                 
 
-    return "Path not found", -1 
+    return "Path not found"
 
 #Cycle detection using DFS
 
@@ -223,28 +225,63 @@ def has_cycle(grid, src):
 def main():
     # Define the grid (1 for unblocked, 0 for blocked)
     grid = [
-        [1, 0, 1, 1, 1, 1, 0, 1, 1, 1],
-        [1, 1, 1, 0, 1, 1, 1, 0, 1, 1],
-        [1, 1, 1, 0, 1, 1, 0, 1, 0, 1],
+        [1, 0, 1, 1, 1, 0, 1, 1, 1, 1],
+        [1, 1, 1, 0, 1, 0, 1, 0, 0, 1],
+        [0, 0, 1, 0, 1, 1, 1, 1, 1, 1],
         [0, 0, 1, 0, 1, 0, 0, 0, 0, 1],
-        [1, 1, 1, 0, 1, 1, 1, 0, 1, 0],
+        [1, 1, 1, 0, 1, 1, 1, 1, 1, 1],
         [1, 0, 1, 1, 1, 1, 0, 1, 0, 0],
         [1, 0, 0, 0, 0, 1, 0, 0, 0, 1],
-        [1, 0, 1, 1, 1, 1, 0, 1, 1, 1],
+        [1, 0, 1, 1, 1, 1, 1, 1, 1, 1],
         [1, 1, 1, 0, 0, 0, 1, 0, 0, 1]
     ]
 
+   
+
     # Define the source and destination
-    src = [8, 0]
-    dest = [0, 0]
+    src = [0, 8]
+    dest = [7, 0]
 
     # Run the A* search algorithm
-    a_star_search(grid, src, dest)
+
+
+    a_star_path_result = a_star_search(grid, src, dest)
+    print("Shortest Path using A*:")
+    for i in a_star_path_result:
+        print("->", i, end=" ")
+    print()
+
+
     shortest_path_result = shortest_path(grid, src, dest)
-    print("Shortest path using BFS:", shortest_path_result)
+    print("Shortest Path using BFS:")
+    for i in shortest_path_result:
+        print("->", i, end=" ")
+    print()
 
     has_cycle_result = has_cycle(grid, src)
-    print("Has cycle:", has_cycle_result)
+    print("Has a cycle:", has_cycle_result)
+
+
+    fig, ax = plt.subplots(1, 2, figsize=(10, 5))
+
+
+    ax[0].set_title('BFS Shortest Path')
+    ax[0].plot(src[1], src[0], 'ro')  # Start point
+    ax[0].plot(dest[1], dest[0], 'go')  # End point
+    ax[0].plot([p[1] for p in shortest_path_result], [p[0] for p in shortest_path_result], 'b-')  # Path
+    ax[0].imshow(grid, cmap='gray_r', origin='upper')
+
+    ax[1].set_title('A* Shortest Path')
+    ax[1].plot(src[1], src[0], 'ro')  # Start point
+    ax[1].plot(dest[1], dest[0], 'go')
+    ax[1].plot([p[1] for p in a_star_path_result], [p[0] for p in a_star_path_result], 'b-')  # End point
+    ax[1].imshow(grid, cmap='gray_r', origin='upper')
+    ax[1].plot( 'b-')  # Path
+
+
+    plt.tight_layout()
+    plt.show()
+
 
 if __name__ == "__main__":
     main()
